@@ -8,40 +8,41 @@ const ContactUs = () => {
     message: "",
   });
 
+  const [loading, setLoading] = useState(false);
+
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     try {
       const response = await fetch("http://localhost:5000/api/contact", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
       const data = await response.json();
 
-      if (response.ok && data.success) {
-        alert("Message sent successfully ");
-        setFormData({
-          name: "",
-          phone: "",
-          message: "",
-        });
-      } else {
-        alert(data.message || "Failed to send message");
+      if (!response.ok) {
+        // Show backend-provided error if exists
+        throw new Error(data.error || data.message || "Server error");
       }
+
+      alert("✅ Message sent successfully!");
+      setFormData({ name: "", phone: "", message: "" });
     } catch (error) {
-      console.error(error);
-      alert("Server error. Please try again later.");
+      console.error("Contact form error:", error);
+      alert(`❌ Failed to send message: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,13 +56,7 @@ const ContactUs = () => {
       <div className="contactus">
         <div className="contactus-col">
           <h3>Send us a message 📩</h3>
-
-          <p>
-            Feel free to reach out through contact form or find our contact
-            information below. Your feedback, questions, and suggestions are
-            important to us as we strive to provide exceptional service.
-          </p>
-
+          <p>Feel free to reach out through the contact form or find our contact information below.</p>
           <ul>
             <li>📧 Contact@TechViRa</li>
             <li>📞 +91 1234567890</li>
@@ -71,7 +66,7 @@ const ContactUs = () => {
 
         <div className="contactus-col">
           <form onSubmit={handleSubmit}>
-            <label>Your name</label>
+            <label>Your Name</label>
             <input
               type="text"
               name="name"
@@ -91,7 +86,7 @@ const ContactUs = () => {
               required
             />
 
-            <label>Write your messages here</label>
+            <label>Write your message here</label>
             <textarea
               name="message"
               rows="6"
@@ -99,10 +94,10 @@ const ContactUs = () => {
               value={formData.message}
               onChange={handleChange}
               required
-            ></textarea>
+            />
 
-            <button type="submit" className="btn dark-btn">
-              Submit Now
+            <button type="submit" className="btn dark-btn" disabled={loading}>
+              {loading ? "Sending..." : "Submit Now"}
             </button>
           </form>
         </div>

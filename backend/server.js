@@ -1,31 +1,48 @@
 const express = require("express");
-const bcrypt = require("bcryptjs");
 const mysql = require("mysql2/promise");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+require("dotenv").config();
 
 const app = express();
 
-
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true
-}));
+/* -------------------- MIDDLEWARE -------------------- */
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://localhost:5173"],
+    credentials: true,
+  })
+);
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
+/* -------------------- MYSQL CONNECTION -------------------- */
 const db = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "Vishmi2828",
-  database: "world",
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
 });
 
-const JWT_SECRET = "techvira_admin_secret";
+/* -------------------- JWT SECRET -------------------- */
+const JWT_SECRET = process.env.JWT_SECRET;
 
+/* -------------------- HEALTH CHECK -------------------- */
+app.get("/api/health", (req, res) => {
+  res.json({ status: "Backend is running" });
+});
 
+/* -------------------- ADMIN LOGIN -------------------- */
 app.post("/api/admin/login", async (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Email and password required" });
+  }
 
   try {
     const [rows] = await db.query(
@@ -34,20 +51,18 @@ app.post("/api/admin/login", async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid email or password" });
     }
 
     const admin = rows[0];
     const isMatch = await bcrypt.compare(password, admin.password);
 
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid email or password" });
     }
 
     const token = jwt.sign(
@@ -59,21 +74,23 @@ app.post("/api/admin/login", async (req, res) => {
     res.json({
       success: true,
       token,
-      message: "Login successful"
+      message: "Login successful",
     });
-
   } catch (error) {
-    console.error("LOGIN ERROR:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+    console.error("Admin Login Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-
+/* -------------------- CONTACT FORM -------------------- */
 app.post("/api/contact", async (req, res) => {
   const { name, phone, message } = req.body;
+
+  if (!name?.trim() || !phone?.trim() || !message?.trim()) {
+    return res
+      .status(400)
+      .json({ success: false, message: "All fields are required" });
+  }
 
   try {
     await db.query(
@@ -81,26 +98,24 @@ app.post("/api/contact", async (req, res) => {
       [name, phone, message]
     );
 
-   
-    res.json({
+    res.status(200).json({
       success: true,
-      message: "Message sent successfully"
+      message: "Message sent successfully",
     });
-
   } catch (error) {
-    console.error("CONTACT ERROR:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to send message"
-    });
+    console.error("Contact Insert Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to send message" });
   }
 });
 
-
+/* -------------------- ADMIN AUTH MIDDLEWARE -------------------- */
 const verifyAdmin = (req, res, next) => {
   const authHeader = req.headers.authorization;
+
   if (!authHeader) {
-    return res.status(401).json({ message: "No token" });
+    return res.status(401).json({ message: "No token provided" });
   }
 
   const token = authHeader.split(" ")[1];
@@ -108,25 +123,27 @@ const verifyAdmin = (req, res, next) => {
   try {
     req.admin = jwt.verify(token, JWT_SECRET);
     next();
-  } catch (err) {
-    console.error("JWT ERROR:", err.message);
+  } catch (error) {
+    console.error("JWT Error:", error);
     res.status(401).json({ message: "Invalid token" });
   }
 };
 
-
+/* -------------------- GET ALL CONTACTS (ADMIN) -------------------- */
 app.get("/api/admin/contacts", verifyAdmin, async (req, res) => {
   try {
     const [rows] = await db.query(
-      "SELECT id, name, phone, message, created_at FROM contact ORDER BY id DESC"
+      "SELECT id, name, phone, message FROM contact ORDER BY id DESC"
     );
     res.json(rows);
   } catch (error) {
-    console.error("FETCH ERROR:", error);
-    res.status(500).json({ message: "Failed to fetch" });
+    console.error("Fetch Contacts Error:", error);
+    res.status(500).json({ message: "Failed to fetch contacts" });
   }
 });
 
-app.listen(5000, () => {
-  console.log(" Backend running on http://localhost:5000");
+/* -------------------- START SERVER -------------------- */
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Backend running on http://localhost:${PORT}`);
 });
