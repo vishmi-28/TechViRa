@@ -7,13 +7,13 @@ const AboutUs = () => {
   return (
     <div className='aboutus'>
 
-      {/* Center Heading */}
+      
       <div className='aboutus-header'>
         <h3>ABOUT COMPANY</h3>
         <h2>Who We Are</h2>
       </div>
 
-      {/* Company Background Section */}
+      
       <div className='aboutus-row'>
         <div className='aboutus-image'>
           <img src={aboutUsImg} alt="Company Background" />
@@ -32,7 +32,7 @@ const AboutUs = () => {
         </div>
       </div>
 
-      {/* Mission Section */}
+      
       <div className='aboutus-row reverse'>
         <div className='aboutus-content'>
           <h2>Mission</h2>
