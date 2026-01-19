@@ -7,10 +7,9 @@ require("dotenv").config();
 
 const app = express();
 
-/* -------------------- MIDDLEWARE -------------------- */
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173"],
+    origin: ["http://localhost:5173", "http://localhost:3000"],
     credentials: true,
   })
 );
@@ -18,23 +17,22 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-/* -------------------- MYSQL CONNECTION -------------------- */
 const db = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
 });
 
-/* -------------------- JWT SECRET -------------------- */
 const JWT_SECRET = process.env.JWT_SECRET;
 
-/* -------------------- HEALTH CHECK -------------------- */
 app.get("/api/health", (req, res) => {
   res.json({ status: "Backend is running" });
 });
 
-/* -------------------- ADMIN LOGIN -------------------- */
 app.post("/api/admin/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -82,7 +80,6 @@ app.post("/api/admin/login", async (req, res) => {
   }
 });
 
-/* -------------------- CONTACT FORM -------------------- */
 app.post("/api/contact", async (req, res) => {
   const { name, phone, message } = req.body;
 
@@ -98,7 +95,7 @@ app.post("/api/contact", async (req, res) => {
       [name, phone, message]
     );
 
-    res.status(200).json({
+    res.json({
       success: true,
       message: "Message sent successfully",
     });
@@ -110,7 +107,6 @@ app.post("/api/contact", async (req, res) => {
   }
 });
 
-/* -------------------- ADMIN AUTH MIDDLEWARE -------------------- */
 const verifyAdmin = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
@@ -129,11 +125,10 @@ const verifyAdmin = (req, res, next) => {
   }
 };
 
-/* -------------------- GET ALL CONTACTS (ADMIN) -------------------- */
 app.get("/api/admin/contacts", verifyAdmin, async (req, res) => {
   try {
     const [rows] = await db.query(
-      "SELECT id, name, phone, message FROM contact ORDER BY id DESC"
+      "SELECT id, name, phone, message, created_at FROM contact ORDER BY id DESC"
     );
     res.json(rows);
   } catch (error) {
@@ -142,8 +137,7 @@ app.get("/api/admin/contacts", verifyAdmin, async (req, res) => {
   }
 });
 
-/* -------------------- START SERVER -------------------- */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
+  console.log(`Backend running on port ${PORT}`);
 });

@@ -5,20 +5,19 @@ const AdminDashboard = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
   useEffect(() => {
     fetchMessages();
   }, []);
 
   const fetchMessages = async () => {
     try {
-      const res = await fetch(
-        "http://localhost:5000/api/admin/contacts",
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
-          },
-        }
-      );
+      const res = await fetch(`${API_URL}/api/admin/contacts`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+        },
+      });
 
       if (!res.ok) {
         throw new Error("Unauthorized");

@@ -10,6 +10,8 @@ const ContactUs = () => {
 
   const [loading, setLoading] = useState(false);
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -23,16 +25,17 @@ const ContactUs = () => {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/contact", {
+      const response = await fetch(`${API_URL}/api/contact`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(formData),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        // Show backend-provided error if exists
         throw new Error(data.error || data.message || "Server error");
       }
 
@@ -56,7 +59,10 @@ const ContactUs = () => {
       <div className="contactus">
         <div className="contactus-col">
           <h3>Send us a message 📩</h3>
-          <p>Feel free to reach out through the contact form or find our contact information below.</p>
+          <p>
+            Feel free to reach out through the contact form or find our contact
+            information below.
+          </p>
           <ul>
             <li>📧 Contact@TechViRa</li>
             <li>📞 +91 1234567890</li>
